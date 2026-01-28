@@ -1,58 +1,25 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import prisma from "@/lib/prisma";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 
-interface Product {
-    id: number;
-    name: string;
-    description: string;
-    price: number;
-    image: string | null;
-    createdAt: string;
-}
+export default async function ProductDetailPage({
+    params,
+}: {
+    params: Promise<{ id: string }>;
+}) {
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
 
-export default function ProductDetailPage() {
-    const { id } = useParams();
-    const router = useRouter();
-    const [product, setProduct] = useState<Product | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchProduct = async () => {
-            try {
-                const res = await fetch(`/api/products/${id}`);
-                if (!res.ok) throw new Error("Product not found");
-                const data = await res.json();
-                setProduct(data);
-            } catch (error) {
-                console.error("Error fetching product:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (id) fetchProduct();
-    }, [id]);
-
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            </div>
-        );
+    if (isNaN(id)) {
+        notFound();
     }
 
+    const product = await prisma.product.findUnique({
+        where: { id },
+    });
+
     if (!product) {
-        return (
-            <div className="text-center py-20">
-                <h1 className="text-2xl font-bold text-gray-900">Product Not Found</h1>
-                <Link href="/" className="text-indigo-600 mt-4 block">
-                    Return to home
-                </Link>
-            </div>
-        );
+        notFound();
     }
 
     return (
