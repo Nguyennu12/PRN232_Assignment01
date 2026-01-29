@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 export default function CreateProductPage() {
     const router = useRouter();
@@ -26,15 +27,16 @@ export default function CreateProductPage() {
             });
 
             if (res.ok) {
+                toast.success("Product created successfully!");
                 router.push("/");
                 router.refresh();
             } else {
                 const data = await res.json();
-                alert(data.error || "Something went wrong");
+                toast.error(data.error || "Something went wrong");
             }
         } catch (error) {
             console.error("Error creating product:", error);
-            alert("Failed to create product");
+            toast.error("Failed to create product");
         } finally {
             setLoading(false);
         }

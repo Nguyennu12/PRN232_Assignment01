@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import ConfirmModal from "./ConfirmModal";
+import { Trash2, Edit, ExternalLink } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface Product {
     id: number;
@@ -14,21 +17,37 @@ interface Product {
 
 export default function ProductGrid({ initialProducts }: { initialProducts: Product[] }) {
     const [products, setProducts] = useState(initialProducts);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [productToDelete, setProductToDelete] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
-    const deleteProduct = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this product?")) return;
+    const handleDeleteClick = (id: number) => {
+        setProductToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (productToDelete === null) return;
+        setIsDeleting(true);
 
         try {
-            const res = await fetch(`/api/products/${id}`, {
+            const res = await fetch(`/api/products/${productToDelete}`, {
                 method: "DELETE",
             });
             if (res.ok) {
-                setProducts(products.filter((p) => p.id !== id));
+                setProducts(products.filter((p) => p.id !== productToDelete));
+                setIsDeleteModalOpen(false);
+                toast.success("Product deleted successfully!");
             } else {
-                alert("Failed to delete product");
+                const data = await res.json();
+                toast.error(data.error || "Failed to delete product");
             }
         } catch (error) {
             console.error("Error deleting product:", error);
+            toast.error("An unexpected error occurred");
+        } finally {
+            setIsDeleting(false);
+            setProductToDelete(null);
         }
     };
 
@@ -41,58 +60,77 @@ export default function ProductGrid({ initialProducts }: { initialProducts: Prod
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => (
-                <div
-                    key={product.id}
-                    className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow"
-                >
-                    <div className="relative h-48 bg-gray-100">
-                        {product.image ? (
-                            <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                No image
+        <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {products.map((product) => (
+                    <div
+                        key={product.id}
+                        className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                    >
+                        <div className="relative h-56 bg-gray-50 overflow-hidden">
+                            {product.image ? (
+                                <img
+                                    src={product.image}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                    No image
+                                </div>
+                            )}
+                            <div className="absolute top-3 right-3">
+                                <span className="bg-white/90 backdrop-blur-md text-indigo-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                                    ${product.price.toFixed(2)}
+                                </span>
                             </div>
-                        )}
-                    </div>
-                    <div className="p-4">
-                        <h2 className="text-lg font-bold text-gray-900 mb-1 truncate">
-                            {product.name}
-                        </h2>
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-2 h-10">
-                            {product.description}
-                        </p>
-                        <p className="text-xl font-bold text-indigo-600 mb-4">
-                            ${product.price.toFixed(2)}
-                        </p>
-                        <div className="flex space-x-2">
-                            <Link
-                                href={`/products/${product.id}`}
-                                className="flex-1 text-center bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-                            >
-                                Details
-                            </Link>
-                            <Link
-                                href={`/products/${product.id}/edit`}
-                                className="bg-white text-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-50 transition-colors text-sm font-medium border border-indigo-100"
-                            >
-                                Edit
-                            </Link>
-                            <button
-                                onClick={() => deleteProduct(product.id)}
-                                className="bg-red-50 text-red-600 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium border border-red-100"
-                            >
-                                Delete
-                            </button>
+                        </div>
+                        <div className="p-5">
+                            <h2 className="text-lg font-bold text-gray-900 mb-2 truncate group-hover:text-indigo-600 transition-colors">
+                                {product.name}
+                            </h2>
+                            <p className="text-gray-500 text-sm mb-6 line-clamp-2 h-10 leading-relaxed">
+                                {product.description}
+                            </p>
+
+                            <div className="flex gap-2">
+                                <Link
+                                    href={`/products/${product.id}`}
+                                    className="flex-1 flex items-center justify-center gap-2 bg-gray-50 text-gray-700 px-3 py-2.5 rounded-xl hover:bg-gray-100 transition-all text-sm font-bold border border-gray-100"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Details
+                                </Link>
+                                <Link
+                                    href={`/products/${product.id}/edit`}
+                                    className="flex items-center justify-center bg-indigo-50 text-indigo-600 p-2.5 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100"
+                                    title="Edit product"
+                                >
+                                    <Edit className="w-4 h-4" />
+                                </Link>
+                                <button
+                                    onClick={() => handleDeleteClick(product.id)}
+                                    className="flex items-center justify-center bg-red-50 text-red-600 p-2.5 rounded-xl hover:bg-red-100 transition-all border border-red-100"
+                                    title="Delete product"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            ))}
+                ))}
+            </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                isLoading={isDeleting}
+                title="Delete Product?"
+                message="Are you sure you want to delete this product? This action will permanently remove it from the store catalog."
+                confirmLabel="Delete Now"
+                type="danger"
+            />
         </div>
     );
 }

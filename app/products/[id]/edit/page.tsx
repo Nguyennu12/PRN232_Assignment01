@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 export default function EditProductPage() {
     const { id } = useParams();
@@ -52,15 +53,16 @@ export default function EditProductPage() {
             });
 
             if (res.ok) {
+                toast.success("Product updated successfully!");
                 router.push(`/products/${id}`);
                 router.refresh();
             } else {
                 const data = await res.json();
-                alert(data.error || "Something went wrong");
+                toast.error(data.error || "Something went wrong");
             }
         } catch (error) {
             console.error("Error updating product:", error);
-            alert("Failed to update product");
+            toast.error("Failed to update product");
         } finally {
             setSaving(false);
         }
