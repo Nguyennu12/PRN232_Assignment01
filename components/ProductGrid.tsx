@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import ConfirmModal from "./ConfirmModal";
-import { Trash2, Edit, ExternalLink } from "lucide-react";
+import { Trash2, Edit, ExternalLink, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
+import { useCart } from "@/lib/CartContext";
 
 interface Product {
     id: number;
@@ -15,11 +16,12 @@ interface Product {
     createdAt: Date;
 }
 
-export default function ProductGrid({ initialProducts }: { initialProducts: Product[] }) {
+export default function ProductGrid({ initialProducts, user }: { initialProducts: Product[], user?: any }) {
     const [products, setProducts] = useState(initialProducts);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const { addToCart } = useCart();
 
     const handleDeleteClick = (id: number) => {
         setProductToDelete(id);
@@ -93,28 +95,46 @@ export default function ProductGrid({ initialProducts }: { initialProducts: Prod
                                 {product.description}
                             </p>
 
-                            <div className="flex gap-2">
-                                <Link
-                                    href={`/products/${product.id}`}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-gray-50 text-gray-700 px-3 py-2.5 rounded-xl hover:bg-gray-100 transition-all text-sm font-bold border border-gray-100"
-                                >
-                                    <ExternalLink className="w-4 h-4" />
-                                    Details
-                                </Link>
-                                <Link
-                                    href={`/products/${product.id}/edit`}
-                                    className="flex items-center justify-center bg-indigo-50 text-indigo-600 p-2.5 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100"
-                                    title="Edit product"
-                                >
-                                    <Edit className="w-4 h-4" />
-                                </Link>
-                                <button
-                                    onClick={() => handleDeleteClick(product.id)}
-                                    className="flex items-center justify-center bg-red-50 text-red-600 p-2.5 rounded-xl hover:bg-red-100 transition-all border border-red-100"
-                                    title="Delete product"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                            <div className="flex flex-col gap-2">
+                                {(!user || user.role !== "ADMIN") && (
+                                    <button
+                                        onClick={() => {
+                                            addToCart(product);
+                                            toast.success("Added to cart!");
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-3 py-2.5 rounded-xl hover:bg-indigo-700 transition-all text-sm font-bold shadow-sm"
+                                    >
+                                        <ShoppingCart className="w-4 h-4" />
+                                        Add to Cart
+                                    </button>
+                                )}
+                                <div className="flex gap-2">
+                                    <Link
+                                        href={`/products/${product.id}`}
+                                        className="flex-1 flex items-center justify-center gap-2 bg-gray-50 text-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 transition-all text-sm font-bold border border-gray-100"
+                                    >
+                                        <ExternalLink className="w-4 h-4" />
+                                        Details
+                                    </Link>
+                                    {user && user.role === "ADMIN" && (
+                                        <>
+                                            <Link
+                                                href={`/products/${product.id}/edit`}
+                                                className="flex items-center justify-center bg-indigo-50 text-indigo-600 p-2 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100"
+                                                title="Edit product"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </Link>
+                                            <button
+                                                onClick={() => handleDeleteClick(product.id)}
+                                                className="flex items-center justify-center bg-red-50 text-red-600 p-2 rounded-xl hover:bg-red-100 transition-all border border-red-100"
+                                                title="Delete product"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
